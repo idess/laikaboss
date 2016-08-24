@@ -10,7 +10,7 @@ Laika is an object scanner and intrusion detection system that strives to achiev
 	+ Tactical code insertion (without needing restart)
 + **Verbose**
 	+ Generate more metadata than you know what to do with
-    
+
 Each scan does three main actions on each object:
 
 + **Extract child objects**
@@ -57,22 +57,89 @@ Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
 
 ##### Installing on Ubuntu
 + Install framework dependencies:
-	+ \# apt-get install yara python-yara python-progressbar
-	+ \# pip install interruptingcow
+```shell
+apt-get install yara python-yara python-progressbar python-pip
+pip install interruptingcow
+```
 + Install network client and server dependencies:
-	+ \# apt-get install libzmq3 python-zmq python-gevent python-pexpect
+```shell
+apt-get install libzmq3 python-zmq python-gevent python-pexpect
+```
 + Install module dependencies:
-	+ \# apt-get install python-ipy python-m2crypto python-pefile python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
-	+ \# pip install fluent-logger olefile ssdeep py-unrar2 pylzma
-	+ \# wget https://github.com/smarnach/pyexiftool/archive/master.zip
-	+ \# unzip master.zip
-	+ \# cd pyexiftool-master
-	+ \# python setup.py build
-	+ \# python setup.py install
+```shell
+apt-get install python-ipy python-m2crypto python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
+pip install fluent-logger olefile ssdeep py-unrar2 pylzma javatools
+wget https://github.com/smarnach/pyexiftool/archive/master.zip
+unzip master.zip
+cd pyexiftool-master
+python setup.py build
+python setup.py install
+wget http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz
+tar vxzf pefile-1.2.10-139.tar.gz
+cd pefile-1.2.10-139
+python setup.py build
+python setup.py install
+```
 
-We recommend using installing [jq](http://stedolan.github.io/jq/) to parse Laika output.
+##### Installing on CentOS
++ Install framework dependencies:
+```shell
+sudo yum install -y epel-release
+sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig
+```
++ Install Python modules
+```shell
+pip install IPy cffi interruptingcow fluent-logger javatools m2crypto olefile pylzma pyclamd py-unrar2
+pip install six --upgrade --force-reinstall
+pip install ssdeep
+```
++ Install Yara
+
+There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/plusvic/yara/releases. The following uses Yara version 3.4.0
+
+```shell
+wget https://github.com/plusvic/yara/archive/v3.4.0.zip
+unzip v3.4.0.zip
+cd yara-3.4.0
+chmod +x ./build.sh
+./build.sh
+sudo make install
+cd yara-python
+python setup.py build
+sudo python setup.py install
+```
+
++ Install pyexif
+```shell
+wget https://github.com/smarnach/pyexiftool/archive/master.zip
+unzip master.zip
+python setup.py build
+sudo python setup.py install
+```
+
++ Install pefile
+```shell
+wget http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz
+tar vxzf pefile-1.2.10-139.tar.gz
+cd pefile-1.2.10-139
+python setup.py build
+python setup.py install --user
+```
+
+You may need to set the LD_LIBRARY_PATH variable to include /usr/local/lib when running Laika.
+
+
+#### Installing Laika BOSS (optional)
+You may use the provided setup script to install the Laika BOSS framework, client library, modules and associated scripts (laika.py, laikad.py, cloudscan.py).
+
+```shell
+python setup.py install
+```
+
 #### Standalone instance
 From the directory containing the framework code, you may run the standalone scanner, laika.py against any file you choose. If you move this file from this directory you'll have to specify various config locations. By default it uses the configurations in the ./etc directory.
+
+We recommend using installing [jq](http://stedolan.github.io/jq/) to parse Laika output.
 
 ```javascript
 $ ./laika.py ~/test_files/testfile.cws.swf | jq '.scan_result[] | { "file type" : .fileType, "flags" : .flags, "md5" : .objectHash }'
@@ -117,6 +184,20 @@ $ ./cloudscan.py ~/test_files/testfile.cws.swf | jq '.scan_result[] | { "file ty
   ]
 }
 ```
+
+#### Milter
+The Laika BOSS milter server allows you to integrate Laika BOSS with mail transfer agents such as Sendmail or Postfix. This enables better visibility (passive visibility can be hampered by TLS) and provides a means to block email according to Laika BOSS disposition.
+
+```
++----------------+             +---------------+             +----------------+
+|                |    email    |               |   email     |                |
+|    sendmail    +------------->  laikamilter  +------------->     laikad     |
+|                | accept/deny |               | scan result |                |
+|                <-------------+               <-------------+                |
++----------------+             +---------------+             +----------------+
+```
+
+The Laika BOSS milter server requires the [python-milter](https://pythonhosted.org/milter) module and the Laika BOSS client library. Check out the comments in the source code for more details.
 
 ##### Licensing
 The Laika framework and associated modules are released under the terms of the Apache 2.0 license.
